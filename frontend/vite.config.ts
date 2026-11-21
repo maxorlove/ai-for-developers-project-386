@@ -8,6 +8,7 @@ export default defineConfig({
       input: [
         resolve(import.meta.dirname, 'index.html'),
         resolve(import.meta.dirname, 'booking/index.html'),
+        resolve(import.meta.dirname, 'owner/index.html'),
       ],
     },
   },

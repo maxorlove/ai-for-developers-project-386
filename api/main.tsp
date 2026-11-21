@@ -21,6 +21,34 @@ model EventType {
   durationMinutes: int32;
 }
 
+model CreatedEventTypeResponse extends CreatedResponse {
+  @body body: EventType;
+}
+
+model ValidationError {
+  code: "validation_error";
+  message: string;
+}
+
+@error
+model ValidationErrorResponse extends BadRequestResponse {
+  @body body: ValidationError;
+}
+
+model EventTypeExistsError {
+  code: "event_type_exists";
+  message: string;
+}
+
+@error
+model EventTypeExistsResponse extends ConflictResponse {
+  @body body: EventTypeExistsError;
+}
+
+@post
+@route("/api/event-types")
+op createEventType(@body eventType: EventType): CreatedEventTypeResponse | ValidationErrorResponse | EventTypeExistsResponse;
+
 @get
 @route("/api/event-types")
 op getEventTypes(): EventType[];
