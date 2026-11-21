@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Запись на звонок · Календарь звонков</title>
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/booking.css" />
   </head>
   <body>
     <main>
@@ -18,7 +19,16 @@
         <label for="booking-day">День</label>
         <select id="booking-day"></select>
         <p id="slots-status" role="status"></p>
-        <ul id="booking-slots" aria-label="Свободные слоты"></ul>
+        <ul id="booking-slots" role="list" aria-label="Свободные слоты"></ul>
+        <p id="booking-status" role="alert"></p>
+        <div id="booking-selection" hidden>
+          <p id="booking-selection-details"></p>
+          <button id="confirm-booking" type="button">Подтвердить запись</button>
+        </div>
+      </section>
+      <section id="booking-confirmation" aria-labelledby="booking-confirmation-title" hidden>
+        <h2 id="booking-confirmation-title">Запись подтверждена</h2>
+        <p id="booking-confirmation-details" role="status"></p>
       </section>
     </main>
     <script type="module" src="/src/booking.ts"></script>

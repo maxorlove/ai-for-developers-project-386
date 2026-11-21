@@ -42,10 +42,15 @@ export function getAvailability(now: Date, durationMinutes: number): Availabilit
   return { timeZone, days: days as Availability['days'] }
 }
 
+export function overlapsBooking(slot: Slot, bookings: readonly Slot[]): boolean {
+  return bookings.some(({ startsAt, endsAt }) => slot.startsAt < endsAt && startsAt < slot.endsAt)
+}
+
 export function registerAvailabilityRoutes(
   app: FastifyInstance,
   eventTypes: ReadonlyMap<string, EventType>,
   clock: () => Date,
+  bookings: readonly Slot[],
 ) {
   const getEventTypeSlots: RouteHandlers['getEventTypeSlots'] = (request, reply) => {
     const eventType = eventTypes.get(request.params.id)
@@ -54,7 +59,12 @@ export function registerAvailabilityRoutes(
       return
     }
 
-    reply.code(200).send(getAvailability(clock(), eventType.durationMinutes))
+    const availability = getAvailability(clock(), eventType.durationMinutes)
+    for (const day of availability.days) {
+      day.slots = day.slots.filter((slot) => !overlapsBooking(slot, bookings))
+    }
+
+    reply.code(200).send(availability)
   }
 
   app.get('/api/event-types/:id/slots', getEventTypeSlots)

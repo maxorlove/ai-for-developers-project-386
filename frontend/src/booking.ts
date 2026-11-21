@@ -1,5 +1,5 @@
-import { getEventTypeSlots, getEventTypes } from '../../api/generated/sdk/index.ts'
-import type { Availability, EventType } from '../../api/generated/sdk/index.ts'
+import { createBooking, getEventTypeSlots, getEventTypes } from '../../api/generated/sdk/index.ts'
+import type { Availability, EventType, Slot } from '../../api/generated/sdk/index.ts'
 
 const status = document.querySelector<HTMLParagraphElement>('#catalog-status')!
 const list = document.querySelector<HTMLUListElement>('#event-types')!
@@ -10,58 +10,173 @@ const timeZoneLabel = document.querySelector<HTMLParagraphElement>('#booking-tim
 const daySelect = document.querySelector<HTMLSelectElement>('#booking-day')!
 const slotsStatus = document.querySelector<HTMLParagraphElement>('#slots-status')!
 const slotsList = document.querySelector<HTMLUListElement>('#booking-slots')!
+const bookingStatus = document.querySelector<HTMLParagraphElement>('#booking-status')!
+const selection = document.querySelector<HTMLElement>('#booking-selection')!
+const selectionDetails = document.querySelector<HTMLParagraphElement>('#booking-selection-details')!
+const confirmButton = document.querySelector<HTMLButtonElement>('#confirm-booking')!
+const confirmation = document.querySelector<HTMLElement>('#booking-confirmation')!
+const confirmationDetails = document.querySelector<HTMLParagraphElement>('#booking-confirmation-details')!
 
-const formatDate = new Intl.DateTimeFormat('ru', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-})
-let slotsRequest: AbortController | undefined
+const dateOptions = { weekday: 'short', day: 'numeric', month: 'long' } as const
+const timeOptions = { hour: '2-digit', minute: '2-digit' } as const
+const formatCalendarDate = new Intl.DateTimeFormat('ru', { ...dateOptions, timeZone: 'UTC' })
 
-function renderSlots({ days, timeZone }: Availability) {
+type CalendarView = {
+  eventType: EventType
+  availability?: Availability
+  request?: AbortController
+}
+
+let activeCalendar: CalendarView | undefined
+let selectedSlot: Slot | undefined
+let bookingPending = false
+
+function formatInterval({ startsAt, endsAt }: Slot, timeZone: Availability['timeZone']) {
+  const formatDate = new Intl.DateTimeFormat('ru', { ...dateOptions, timeZone })
+  const formatTime = new Intl.DateTimeFormat('ru', { ...timeOptions, timeZone })
+  const start = new Date(startsAt)
+  return `${formatDate.format(start)}, ${formatTime.format(start)}–${formatTime.format(new Date(endsAt))}`
+}
+
+function updateSelection(slot?: Slot) {
+  selectedSlot = slot
+  selection.hidden = !slot
+  confirmButton.disabled = bookingPending || !!activeCalendar?.request
+
+  for (const button of slotsList.querySelectorAll('button')) {
+    button.setAttribute('aria-pressed', String(button.value === slot?.startsAt))
+  }
+
+  if (slot && activeCalendar?.availability) {
+    selectionDetails.textContent = formatInterval(slot, activeCalendar.availability.timeZone)
+  }
+}
+
+function renderSlots({ days, timeZone }: Availability, selectedStart?: string) {
   const slots = days.find(({ date }) => date === daySelect.value)?.slots ?? []
-  const formatTime = new Intl.DateTimeFormat('ru', { timeZone, hour: '2-digit', minute: '2-digit' })
+  const formatTime = new Intl.DateTimeFormat('ru', { ...timeOptions, timeZone })
 
   slotsList.replaceChildren()
   slotsStatus.textContent = slots.length ? '' : 'На этот день нет свободных слотов.'
   slotsList.hidden = !slots.length
-  for (const { startsAt } of slots) {
+  for (const slot of slots) {
     const item = document.createElement('li')
+    const button = document.createElement('button')
     const time = document.createElement('time')
-    time.dateTime = startsAt
-    time.textContent = formatTime.format(new Date(startsAt))
-    item.append(time)
+
+    button.type = 'button'
+    button.value = slot.startsAt
+    time.dateTime = slot.startsAt
+    time.textContent = formatTime.format(new Date(slot.startsAt))
+    button.append(time)
+    button.addEventListener('click', () => {
+      bookingStatus.textContent = ''
+      updateSelection(slot)
+    })
+
+    item.append(button)
     slotsList.append(item)
   }
+
+  updateSelection(slots.find(({ startsAt }) => startsAt === selectedStart))
 }
 
-async function loadAvailability(eventType: EventType) {
-  slotsRequest?.abort()
+async function loadAvailability(view: CalendarView) {
+  view.request?.abort()
   const request = new AbortController()
-  slotsRequest = request
-  calendar.hidden = true
+  view.request = request
+  confirmButton.disabled = true
   calendarStatus.textContent = 'Загружаем свободное время…'
 
-  const { data } = await getEventTypeSlots({ path: { id: eventType.id }, signal: request.signal })
-  if (request.signal.aborted) return
+  const { data } = await getEventTypeSlots({ path: { id: view.eventType.id }, signal: request.signal })
+  if (request.signal.aborted || activeCalendar !== view) {
+    return
+  }
 
+  view.request = undefined
   if (!data) {
+    view.availability = undefined
+    slotsList.replaceChildren()
+    slotsList.hidden = true
+    slotsStatus.textContent = ''
+    updateSelection()
     calendarStatus.textContent = 'Не удалось загрузить свободное время.'
     return
   }
 
-  calendarHeading.textContent = `Свободное время — «${eventType.title}»`
+  const previousDay = view.availability && daySelect.value
+  view.availability = data
+  calendarHeading.textContent = `Свободное время — «${view.eventType.title}»`
   timeZoneLabel.textContent = `Часовой пояс — Москва (${data.timeZone}).`
   daySelect.replaceChildren(...data.days.map(({ date }) => {
-    return new Option(formatDate.format(new Date(date)), date)
+    return new Option(formatCalendarDate.format(new Date(date)), date)
   }))
-  daySelect.onchange = () => renderSlots(data)
-  renderSlots(data)
+  if (previousDay && data.days.some(({ date }) => date === previousDay)) {
+    daySelect.value = previousDay
+  }
+
+  renderSlots(data, selectedSlot?.startsAt)
 
   calendarStatus.textContent = ''
   calendar.hidden = false
 }
+
+daySelect.addEventListener('change', () => {
+  bookingStatus.textContent = ''
+  if (activeCalendar?.availability) {
+    renderSlots(activeCalendar.availability)
+  }
+})
+
+confirmButton.addEventListener('click', async () => {
+  const view = activeCalendar
+  const slot = selectedSlot
+  if (!view?.availability || !slot || bookingPending) {
+    return
+  }
+
+  const day = daySelect.value
+  const { timeZone } = view.availability
+  bookingPending = true
+  confirmButton.disabled = true
+  confirmation.hidden = true
+  bookingStatus.textContent = ''
+
+  const { data, error, response } = await createBooking({
+    body: { eventTypeId: view.eventType.id, startsAt: slot.startsAt },
+  })
+  bookingPending = false
+
+  const sameDay = activeCalendar === view && daySelect.value === day
+  const confirmed = response?.status === 201 && data
+  const conflict = response?.status === 409 && error?.code === 'slot_taken'
+  if (confirmed) {
+    confirmationDetails.textContent = `«${data.eventTypeTitle}» — ${formatInterval(data, timeZone)}, Москва.`
+    confirmation.hidden = false
+  }
+
+  if (confirmed || conflict) {
+    if (sameDay && selectedSlot === slot) {
+      updateSelection()
+    }
+
+    if (sameDay && conflict) {
+      bookingStatus.textContent = error.message
+    }
+
+    if (activeCalendar) {
+      await loadAvailability(activeCalendar)
+    }
+
+    return
+  }
+
+  if (sameDay) {
+    bookingStatus.textContent = 'Не удалось подтвердить запись. Попробуйте ещё раз.'
+  }
+
+  updateSelection(selectedSlot)
+})
 
 const { data: eventTypes } = await getEventTypes()
 
@@ -82,7 +197,14 @@ if (!eventTypes) {
     duration.textContent = `${eventType.durationMinutes} мин.`
     choose.type = 'button'
     choose.textContent = `Выбрать «${eventType.title}»`
-    choose.addEventListener('click', () => void loadAvailability(eventType))
+    choose.addEventListener('click', () => {
+      activeCalendar?.request?.abort()
+      activeCalendar = { eventType }
+      calendar.hidden = true
+      bookingStatus.textContent = ''
+      updateSelection()
+      void loadAvailability(activeCalendar)
+    })
     item.append(title, description, duration, choose)
     list.append(item)
   }

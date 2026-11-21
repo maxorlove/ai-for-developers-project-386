@@ -6,9 +6,11 @@ using TypeSpec.Http;
 @server("/", "Текущий сайт")
 namespace Calendar;
 
+@pattern("^[a-z0-9]+(-[a-z0-9]+)*$")
+scalar EventTypeId extends string;
+
 model EventType {
-  @pattern("^[a-z0-9]+(-[a-z0-9]+)*$")
-  id: string;
+  id: EventTypeId;
 
   @pattern("\\S")
   title: string;
@@ -85,3 +87,32 @@ model EventTypeNotFoundResponse {
 @get
 @route("/api/event-types/{id}/slots")
 op getEventTypeSlots(@path id: string): Availability | EventTypeNotFoundResponse;
+
+model Booking extends Slot {
+  id: string;
+  eventTypeId: EventTypeId;
+  eventTypeTitle: string;
+}
+
+model BookingRequest {
+  eventTypeId: EventTypeId;
+  startsAt: offsetDateTime;
+}
+
+model BookingCreatedResponse extends CreatedResponse {
+  @body body: Booking;
+}
+
+model SlotTakenError {
+  code: "slot_taken";
+  message: string;
+}
+
+@error
+model SlotTakenResponse extends ConflictResponse {
+  @body body: SlotTakenError;
+}
+
+@post
+@route("/api/bookings")
+op createBooking(@body body: BookingRequest): BookingCreatedResponse | ValidationErrorResponse | EventTypeNotFoundResponse | SlotTakenResponse;

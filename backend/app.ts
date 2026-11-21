@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
-import type { EventType } from '../api/generated/sdk/index.ts'
+import type { Booking, EventType } from '../api/generated/sdk/index.ts'
 import { registerAvailabilityRoutes } from './availability.ts'
+import { registerBookingRoutes } from './bookings.ts'
 import { registerEventTypeRoutes } from './event-types.ts'
 
 type AppOptions = {
@@ -11,10 +12,12 @@ type AppOptions = {
 export function createApp({ eventTypes = [], clock = () => new Date() }: AppOptions = {}) {
   const app = Fastify()
   const eventTypeStore = new Map(eventTypes.map((eventType) => [eventType.id, eventType]))
+  const bookings: Booking[] = []
 
   app.get('/api/health', async () => ({ status: 'ok' }))
   registerEventTypeRoutes(app, eventTypeStore)
-  registerAvailabilityRoutes(app, eventTypeStore, clock)
+  registerAvailabilityRoutes(app, eventTypeStore, clock, bookings)
+  registerBookingRoutes(app, eventTypeStore, clock, bookings)
 
   return app
 }
