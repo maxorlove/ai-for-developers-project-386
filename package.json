@@ -15,6 +15,7 @@
     "api:generate": "tsp compile api && openapi-ts"
   },
   "dependencies": {
+    "@fastify/static": "10.1.12",
     "fastify": "5.12.8"
   },
   "devDependencies": {

@@ -3,3 +3,4 @@ dist/
 /.agents/skills/
 /api/generated/
 /test-results/
+/.codex/config.toml
