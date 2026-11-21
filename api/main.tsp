@@ -24,3 +24,36 @@ model EventType {
 @get
 @route("/api/event-types")
 op getEventTypes(): EventType[];
+
+model Slot {
+  startsAt: utcDateTime;
+  endsAt: utcDateTime;
+}
+
+model AvailabilityDay {
+  date: plainDate;
+  slots: Slot[];
+}
+
+model Availability {
+  timeZone: "Europe/Moscow";
+
+  @minItems(14)
+  @maxItems(14)
+  days: AvailabilityDay[];
+}
+
+@error
+model EventTypeNotFound {
+  code: "event_type_not_found";
+  message: string;
+}
+
+model EventTypeNotFoundResponse {
+  @statusCode statusCode: 404;
+  @body body: EventTypeNotFound;
+}
+
+@get
+@route("/api/event-types/{id}/slots")
+op getEventTypeSlots(@path id: string): Availability | EventTypeNotFoundResponse;

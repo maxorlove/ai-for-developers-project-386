@@ -11,6 +11,15 @@
       <h1>Запись на звонок</h1>
       <p id="catalog-status" role="status"></p>
       <ul id="event-types" aria-label="Типы встреч" hidden></ul>
+      <p id="calendar-status" role="status"></p>
+      <section id="booking-calendar" hidden>
+        <h2 id="calendar-heading"></h2>
+        <p id="booking-time-zone"></p>
+        <label for="booking-day">День</label>
+        <select id="booking-day"></select>
+        <p id="slots-status" role="status"></p>
+        <ul id="booking-slots" aria-label="Свободные слоты"></ul>
+      </section>
     </main>
     <script type="module" src="/src/booking.ts"></script>
   </body>
