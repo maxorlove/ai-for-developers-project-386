@@ -154,11 +154,11 @@ test('bookings reject a repeat of a confirmed slot', async (context) => {
   assert.equal(error.code, 'slot_taken')
 })
 
-test('only one of two simultaneous overlapping booking requests is saved', async (context) => {
+test('only one of two simultaneous overlapping booking requests across event types is saved', async (context) => {
   const url = await startApp(context)
   const responses = await Promise.all([
     book(url, 'intro', '2026-11-21T07:00:00Z'),
-    book(url, 'intro', '2026-11-21T07:30:00Z'),
+    book(url, 'brief', '2026-11-21T07:30:00Z'),
   ])
 
   assert.deepEqual(responses.map(({ status }) => status).sort(), [201, 409])
@@ -175,6 +175,6 @@ test('only one of two simultaneous overlapping booking requests is saved', async
   const starts = days[0]!.slots.map(({ startsAt }) => startsAt)
   assert.ok(!starts.includes('2026-11-21T07:30:00.000Z'))
   assert.equal(starts.includes('2026-11-21T07:00:00.000Z'), booking.startsAt === '2026-11-21T07:30:00.000Z')
-  assert.equal(starts.includes('2026-11-21T08:00:00.000Z'), booking.startsAt === '2026-11-21T07:00:00.000Z')
+  assert.ok(starts.includes('2026-11-21T08:00:00.000Z'))
   assert.deepEqual(await listBookings(url), [booking])
 })

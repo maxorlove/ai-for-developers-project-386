@@ -12,7 +12,7 @@
 
 #event-type-form :is(input, textarea, button) {
   padding: 0.625rem 0.875rem;
-  border: 1px solid #adb9cc;
+  border: 1px solid #7a879a;
   border-radius: 0.5rem;
   color: inherit;
   font: inherit;

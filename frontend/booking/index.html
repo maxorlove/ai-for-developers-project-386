@@ -20,16 +20,18 @@
         <select id="booking-day"></select>
         <p id="slots-status" role="status"></p>
         <ul id="booking-slots" role="list" aria-label="Свободные слоты"></ul>
-        <p id="booking-status" role="alert"></p>
         <div id="booking-selection" hidden>
           <p id="booking-selection-details"></p>
           <button id="confirm-booking" type="button">Подтвердить запись</button>
         </div>
       </section>
-      <section id="booking-confirmation" aria-labelledby="booking-confirmation-title" hidden>
-        <h2 id="booking-confirmation-title">Запись подтверждена</h2>
-        <p id="booking-confirmation-details" role="status"></p>
-      </section>
+      <p id="booking-status" role="alert"></p>
+      <div role="status">
+        <section id="booking-confirmation" aria-labelledby="booking-confirmation-title" hidden>
+          <h2 id="booking-confirmation-title">Запись подтверждена</h2>
+          <p id="booking-confirmation-details"></p>
+        </section>
+      </div>
     </main>
     <script type="module" src="/src/booking.ts"></script>
   </body>

@@ -47,6 +47,7 @@ function updateSelection(slot?: Slot) {
 function renderSlots({ days, timeZone }: Availability, selectedStart?: string) {
   const slots = days.find(({ date }) => date === daySelect.value)?.slots ?? []
   const formatTime = new Intl.DateTimeFormat('ru', { ...timeOptions, timeZone })
+  const focusedStart = slotsList.querySelector<HTMLButtonElement>('button:focus')?.value
 
   slotsList.replaceChildren()
   slotsStatus.textContent = slots.length ? '' : 'На этот день нет свободных слотов.'
@@ -68,6 +69,9 @@ function renderSlots({ days, timeZone }: Availability, selectedStart?: string) {
 
     item.append(button)
     slotsList.append(item)
+    if (slot.startsAt === focusedStart) {
+      button.focus({ preventScroll: true })
+    }
   }
 
   updateSelection(slots.find(({ startsAt }) => startsAt === selectedStart))
@@ -152,8 +156,10 @@ confirmButton.addEventListener('click', async () => {
       updateSelection()
     }
 
-    if (sameDay && conflict) {
-      bookingStatus.textContent = error.message
+    if (conflict) {
+      bookingStatus.textContent = sameDay
+        ? error.message
+        : `«${view.eventType.title}» — ${formatInterval(slot, timeZone)}, Москва. ${error.message}`
     }
 
     if (activeCalendar) {

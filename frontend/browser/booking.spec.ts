@@ -55,7 +55,7 @@ test('a guest books a call and the owner sees the same meeting', async ({ page, 
 
   const details = /Знакомство.*22 ноября.*10:00–10:30.*Москва/
   const confirmation = page.getByRole('region', { name: 'Запись подтверждена' })
-  await expect(confirmation.getByRole('status')).toHaveText(details)
+  await expect(confirmation).toContainText(details)
 
   await owner.reload()
   const upcoming = owner.getByRole('region', { name: 'Предстоящие записи' })
