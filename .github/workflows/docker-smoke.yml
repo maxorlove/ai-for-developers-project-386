@@ -1,0 +1,76 @@
+name: Docker smoke check
+
+on:
+  push:
+    branches:
+      - codex/step-7-docker-check
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build --tag call-calendar .
+      - name: Start on a custom port and verify pages and API
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --rm --name call-calendar-smoke --env PORT=8080 --publish 127.0.0.1:8080:8080 call-calendar
+          trap 'docker logs call-calendar-smoke; docker stop call-calendar-smoke' EXIT
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:8080/api/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          python3 - <<'PY'
+          import json
+          import re
+          import urllib.error
+          import urllib.request
+
+          base = "http://127.0.0.1:8080"
+
+          def call(path, payload=None):
+              body = json.dumps(payload).encode() if payload is not None else None
+              request = urllib.request.Request(base + path, data=body, headers={"Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(request, timeout=10) as response:
+                      return response.status, response.read().decode()
+              except urllib.error.HTTPError as error:
+                  return error.code, error.read().decode()
+
+          assert json.loads(call("/api/health")[1]) == {"status": "ok"}
+          pages = {
+              "/": "Календарь звонков",
+              "/booking/": "Запись на звонок",
+              "/owner/": "Владелец календаря",
+          }
+          for path, title in pages.items():
+              status, html = call(path)
+              assert status == 200 and title in html, (path, status)
+              for asset in re.findall(r'["\x27](/assets/[^"\x27]+)', html):
+                  assert call(asset)[0] == 200, asset
+
+          for name, duration in (("demo-long", 60), ("demo-short", 30)):
+              assert call("/api/event-types", {
+                  "id": name, "title": name, "description": "Docker smoke check",
+                  "durationMinutes": duration,
+              })[0] == 201
+          dates = json.loads(call("/api/event-types/demo-long/slots")[1])["days"]
+          assert len(dates) == 14
+          first = dates[0]["slots"][2]["startsAt"]
+          overlapping = dates[0]["slots"][3]["startsAt"]
+          status, body = call("/api/bookings", {"eventTypeId": "demo-long", "startsAt": first})
+          assert status == 201, body
+          records = json.loads(call("/api/bookings")[1])
+          assert [record["id"] for record in records] == [json.loads(body)["id"]]
+
+          status, body = call("/api/bookings", {"eventTypeId": "demo-short", "startsAt": overlapping})
+          assert status == 409 and json.loads(body)["code"] == "slot_taken", body
+          print("Docker image is running on PORT=8080. Verified all pages, assets, owner bookings and HTTP 409.")
+          PY
