@@ -1,0 +1,24 @@
+{
+  "name": "ai-for-developers-project-386",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev:backend": "node --watch backend/server.ts",
+    "dev:frontend": "vite frontend",
+    "build": "vite build frontend",
+    "lint": "oxlint backend frontend",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "fastify": "5.12.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "oxlint": "1.94.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.8"
+  }
+}

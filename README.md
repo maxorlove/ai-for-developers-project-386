@@ -10,20 +10,36 @@
 
 ## Стек
 
-- Разное
+- Бэкенд — Fastify и TypeScript.
+- Фронтенд — Vite и TypeScript.
 
 ## Установка
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Установите Node.js версии из `.node-version` и pnpm версии из поля `packageManager` в `package.json`.
 
 ```bash
 git clone https://github.com/maxorlove/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+pnpm install --frozen-lockfile
 ```
 
 ## Использование
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+Запустите команды в двух терминалах.
+
+```bash
+pnpm dev:backend
+```
+
+```bash
+pnpm dev:frontend
+```
+
+Фронтенд доступен на http://localhost:5173. Бэкенд отвечает на http://127.0.0.1:3000/api/health.
+
+Команда `pnpm check` запускает линтер, проверку типов и дымовой тест. GitHub Actions выполняет ту же команду при каждом push.
+
+<!-- Добавьте запись asciinema после реализации сценария бронирования -->
 
 ---
 
