@@ -7,6 +7,12 @@
 - Сборка фронтенда — `pnpm build`, только по явной просьбе пользователя. Новые тесты добавляйте только по явной просьбе пользователя.
 - Используйте Conventional Commits. В коммите реализации указывайте номер тикета, например `feat: add booking form (#12)`.
 
+## Контракт API
+
+- Меняйте модели и операции в `api/main.tsp`, затем запускайте `pnpm api:generate`.
+- Команда создаёт `api/generated/openapi.json` и TypeScript SDK в `api/generated/sdk/`, включая типы обработчиков Fastify из `fastify.gen.ts`. Маршруты регистрирует приложение Fastify. HTTP-тесты сверяют JSON-ответы с OpenAPI.
+- Не редактируйте генерируемые файлы вручную. `pnpm check` запускает её до проверок, в том числе в GitHub Actions.
+
 ## Agent skills
 
 The Matt Pocock skill set is installed in `.agents/skills/` for this project.

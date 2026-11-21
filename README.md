@@ -21,6 +21,7 @@
 git clone https://github.com/maxorlove/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
 pnpm install --frozen-lockfile
+pnpm api:generate
 ```
 
 ## Использование
@@ -37,7 +38,9 @@ pnpm dev:frontend
 
 Фронтенд доступен на http://localhost:5173. Бэкенд отвечает на http://127.0.0.1:3000/api/health.
 
-Команда `pnpm check` запускает линтер, проверку типов и тесты. GitHub Actions выполняет ту же команду при каждом push.
+Типы встреч хранятся в памяти. Перезапуск бэкенда очищает каталог.
+
+Команда `pnpm check` генерирует контракт API и SDK, затем запускает линтер, проверку типов и тесты. GitHub Actions выполняет ту же команду при каждом push.
 
 <!-- Добавьте запись asciinema после реализации сценария бронирования -->
 
