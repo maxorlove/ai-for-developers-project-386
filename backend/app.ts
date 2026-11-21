@@ -9,7 +9,12 @@ type AppOptions = {
   clock?: () => Date
 }
 
-export function createApp({ eventTypes = [], clock = () => new Date() }: AppOptions = {}) {
+const defaultEventTypes: EventType[] = [
+  { id: 'consultation-15', title: 'Консультация 15 мин', description: 'Короткий звонок по одному вопросу.', durationMinutes: 15 },
+  { id: 'consultation-30', title: 'Консультация 30 мин', description: 'Полчаса на подробный разбор задачи.', durationMinutes: 30 },
+]
+
+export function createApp({ eventTypes = defaultEventTypes, clock = () => new Date() }: AppOptions = {}) {
   const app = Fastify()
   const eventTypeStore = new Map(eventTypes.map((eventType) => [eventType.id, eventType]))
   const bookings: Booking[] = []

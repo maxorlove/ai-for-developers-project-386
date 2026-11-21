@@ -12,7 +12,7 @@ function postEventType(url: URL, body: string) {
 }
 
 test('the event type catalog returns an empty JSON array when no types exist', async (context) => {
-  const app = createApp()
+  const app = createApp({ eventTypes: [] })
   context.after(() => app.close())
   const url = await app.listen({ host: '127.0.0.1', port: 0 })
 
@@ -46,7 +46,7 @@ test('the event type catalog returns all details of an existing type', async (co
 })
 
 test('creating an event type adds it to the guest catalog', async (context) => {
-  const app = createApp()
+  const app = createApp({ eventTypes: [] })
   context.after(() => app.close())
   const url = await app.listen({ host: '127.0.0.1', port: 0 })
   const eventTypesUrl = new URL('/api/event-types', url)
@@ -72,7 +72,7 @@ test('creating an event type adds it to the guest catalog', async (context) => {
 })
 
 test('the API rejects invalid event types without adding them to the catalog', async (context) => {
-  const app = createApp()
+  const app = createApp({ eventTypes: [] })
   context.after(() => app.close())
   const url = await app.listen({ host: '127.0.0.1', port: 0 })
   const eventTypesUrl = new URL('/api/event-types', url)
