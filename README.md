@@ -1,5 +1,6 @@
 # Календарь звонков
 
+[Открыть календарь звонков на Render](https://maxorlove-call-calendar.onrender.com/)
 
 [![hexlet-check](https://github.com/maxorlove/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/maxorlove/ai-for-developers-project-386/actions)
 
@@ -53,7 +54,7 @@ docker run --rm -e PORT=8080 -p 8080:8080 call-calendar
 
 ## Деплой на Render
 
-Создайте Web Service с Docker из корня репозитория, выберите ветку `main` и укажите `/api/health` как путь проверки готовности. Render передаёт порт через `PORT`.
+Render использует `render.yaml` из ветки `codex/booking-day-picker`. Сервис собирается из корневого Dockerfile, слушает порт из `PORT` и отвечает на `/api/health`.
 
 Для работы через Codex используйте шаблон `.codex/config.toml.example`. Скопируйте его в `.codex/config.toml` или добавьте из него блок в существующий файл. Из корня проекта запустите `codex mcp login render` и завершите вход через OAuth в браузере. Данные OAuth остаются в локальном хранилище Codex.
 
