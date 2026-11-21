@@ -1,5 +1,6 @@
 import { createBooking, getEventTypeSlots, getEventTypes } from '../../api/generated/sdk/index.ts'
 import type { Availability, EventType, Slot } from '../../api/generated/sdk/index.ts'
+import { dateOptions, formatInterval, timeOptions } from './booking-time.ts'
 
 const status = document.querySelector<HTMLParagraphElement>('#catalog-status')!
 const list = document.querySelector<HTMLUListElement>('#event-types')!
@@ -17,8 +18,6 @@ const confirmButton = document.querySelector<HTMLButtonElement>('#confirm-bookin
 const confirmation = document.querySelector<HTMLElement>('#booking-confirmation')!
 const confirmationDetails = document.querySelector<HTMLParagraphElement>('#booking-confirmation-details')!
 
-const dateOptions = { weekday: 'short', day: 'numeric', month: 'long' } as const
-const timeOptions = { hour: '2-digit', minute: '2-digit' } as const
 const formatCalendarDate = new Intl.DateTimeFormat('ru', { ...dateOptions, timeZone: 'UTC' })
 
 type CalendarView = {
@@ -30,13 +29,6 @@ type CalendarView = {
 let activeCalendar: CalendarView | undefined
 let selectedSlot: Slot | undefined
 let bookingPending = false
-
-function formatInterval({ startsAt, endsAt }: Slot, timeZone: Availability['timeZone']) {
-  const formatDate = new Intl.DateTimeFormat('ru', { ...dateOptions, timeZone })
-  const formatTime = new Intl.DateTimeFormat('ru', { ...timeOptions, timeZone })
-  const start = new Date(startsAt)
-  return `${formatDate.format(start)}, ${formatTime.format(start)}–${formatTime.format(new Date(endsAt))}`
-}
 
 function updateSelection(slot?: Slot) {
   selectedSlot = slot

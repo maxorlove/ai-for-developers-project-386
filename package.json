@@ -7,10 +7,11 @@
     "dev:backend": "node --watch backend/server.ts",
     "dev:frontend": "vite frontend",
     "build": "vite build frontend",
-    "lint": "oxlint backend frontend",
+    "lint": "oxlint backend frontend playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --test",
-    "check": "pnpm api:generate && pnpm lint && pnpm typecheck && pnpm test",
+    "test:browser": "playwright test",
+    "check": "pnpm api:generate && pnpm lint && pnpm typecheck && pnpm test && pnpm test:browser",
     "api:generate": "tsp compile api && openapi-ts"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
+    "@playwright/test": "1.65.1",
     "@types/node": "24.10.0",
     "@typespec/compiler": "1.18.0",
     "@typespec/http": "1.18.0",

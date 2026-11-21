@@ -2,3 +2,4 @@ node_modules/
 dist/
 /.agents/skills/
 /api/generated/
+/test-results/

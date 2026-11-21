@@ -6,9 +6,9 @@ import { assertJsonResponse } from './openapi-response.ts'
 
 const bookingsPath = '/api/bookings'
 
-async function startApp(context: TestContext) {
+async function startApp(context: TestContext, clock = () => new Date('2026-11-20T20:59:59.999Z')) {
   const app = createApp({
-    clock: () => new Date('2026-11-20T20:59:59.999Z'),
+    clock,
     eventTypes: [
       { id: 'intro', title: 'Знакомство', description: 'Вводный звонок', durationMinutes: 60 },
       { id: 'brief', title: 'Краткий звонок', description: 'Короткая встреча', durationMinutes: 30 },
@@ -29,6 +29,34 @@ function postJson(url: string, body: string) {
     body,
   })
 }
+
+async function listBookings(url: string) {
+  const response = await fetch(new URL(bookingsPath, url))
+  assert.equal(response.status, 200)
+  return assertJsonResponse(response, 'get', bookingsPath)
+}
+
+test('the owner sees upcoming bookings of all types sorted by start', async (context) => {
+  let now = '2026-11-20T20:59:59.999Z'
+  const url = await startApp(context, () => new Date(now))
+  assert.deepEqual(await listBookings(url), [])
+
+  const later = await book(url, 'intro', '2026-11-21T08:30:00Z')
+  const earlier = await book(url, 'brief', '2026-11-21T07:00:00Z')
+  const past = await book(url, 'intro', '2026-11-21T06:00:00Z')
+  assert.equal(later.status, 201)
+  assert.equal(earlier.status, 201)
+  assert.equal(past.status, 201)
+  const laterBooking = await assertJsonResponse(later, 'post', bookingsPath)
+  const earlierBooking = await assertJsonResponse(earlier, 'post', bookingsPath)
+  await assertJsonResponse(past, 'post', bookingsPath)
+
+  now = '2026-11-21T07:00:00.000Z'
+  assert.deepEqual(await listBookings(url), [earlierBooking, laterBooking])
+
+  now = '2026-11-21T07:00:00.001Z'
+  assert.deepEqual(await listBookings(url), [laterBooking])
+})
 
 test('a guest confirms a slot and receives the meeting interval in UTC', async (context) => {
   const url = await startApp(context)
@@ -148,4 +176,5 @@ test('only one of two simultaneous overlapping booking requests is saved', async
   assert.ok(!starts.includes('2026-11-21T07:30:00.000Z'))
   assert.equal(starts.includes('2026-11-21T07:00:00.000Z'), booking.startsAt === '2026-11-21T07:30:00.000Z')
   assert.equal(starts.includes('2026-11-21T08:00:00.000Z'), booking.startsAt === '2026-11-21T07:00:00.000Z')
+  assert.deepEqual(await listBookings(url), [booking])
 })

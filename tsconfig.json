@@ -10,5 +10,5 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["backend/**/*.ts", "frontend/**/*.ts"]
+  "include": ["backend/**/*.ts", "frontend/**/*.ts", "playwright.config.ts"]
 }

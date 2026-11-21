@@ -116,3 +116,7 @@ model SlotTakenResponse extends ConflictResponse {
 @post
 @route("/api/bookings")
 op createBooking(@body body: BookingRequest): BookingCreatedResponse | ValidationErrorResponse | EventTypeNotFoundResponse | SlotTakenResponse;
+
+@get
+@route("/api/bookings")
+op getBookings(): Booking[];

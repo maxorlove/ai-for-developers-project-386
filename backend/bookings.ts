@@ -79,10 +79,19 @@ export function registerBookingRoutes(
     reply.code(201).send(booking)
   }
 
+  const getBookings: RouteHandlers['getBookings'] = (_request, reply) => {
+    const now = clock().getTime()
+    const upcoming = bookings
+      .filter(({ startsAt }) => Date.parse(startsAt) >= now)
+      .sort((first, second) => Date.parse(first.startsAt) - Date.parse(second.startsAt))
+    reply.code(200).send(upcoming)
+  }
+
   app.post('/api/bookings', {
     errorHandler(error, _request, reply) {
       const body = invalidJsonResponse(error, 'Отправьте данные записи в формате JSON.')
       reply.code(400).send(body)
     },
   }, createBooking)
+  app.get('/api/bookings', getBookings)
 }

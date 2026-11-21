@@ -31,6 +31,11 @@
         <button type="submit">Создать тип встречи</button>
       </form>
       <p id="event-type-status" role="status"></p>
+      <section aria-labelledby="upcoming-bookings-heading">
+        <h2 id="upcoming-bookings-heading">Предстоящие записи</h2>
+        <p id="upcoming-bookings-status" role="status">Загружаем записи…</p>
+        <ul id="upcoming-bookings-list" hidden></ul>
+      </section>
     </main>
     <script type="module" src="/src/owner.ts"></script>
   </body>
