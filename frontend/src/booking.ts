@@ -1,6 +1,7 @@
 import { createBooking, getEventTypeSlots, getEventTypes } from '../../api/generated/sdk/index.ts'
 import type { Availability, EventType, Slot } from '../../api/generated/sdk/index.ts'
 import { dateOptions, formatInterval, timeOptions } from './booking-time.ts'
+import { rememberBooking } from './guest-bookings.ts'
 
 const status = document.querySelector<HTMLParagraphElement>('#catalog-status')!
 const list = document.querySelector<HTMLUListElement>('#event-types')!
@@ -23,17 +24,17 @@ const formatCalendarDate = new Intl.DateTimeFormat('ru', { ...dateOptions, timeZ
 type CalendarView = {
   eventType: EventType
   availability?: Availability
-  request?: AbortController
 }
 
 let activeCalendar: CalendarView | undefined
+let availabilityRequest: { eventType: EventType; controller: AbortController } | undefined
 let selectedSlot: Slot | undefined
 let bookingPending = false
 
 function updateSelection(slot?: Slot) {
   selectedSlot = slot
   selection.hidden = !slot
-  confirmButton.disabled = bookingPending || !!activeCalendar?.request
+  confirmButton.disabled = bookingPending || !!availabilityRequest
 
   for (const button of slotsList.querySelectorAll('button')) {
     button.setAttribute('aria-pressed', String(button.value === slot?.startsAt))
@@ -77,32 +78,51 @@ function renderSlots({ days, timeZone }: Availability, selectedStart?: string) {
   updateSelection(slots.find(({ startsAt }) => startsAt === selectedStart))
 }
 
-async function loadAvailability(view: CalendarView) {
-  view.request?.abort()
-  const request = new AbortController()
-  view.request = request
-  confirmButton.disabled = true
-  calendarStatus.textContent = 'Загружаем свободное время…'
+function clearAvailabilityRequest() {
+  availabilityRequest = undefined
+  calendar.inert = false
+  calendar.removeAttribute('aria-busy')
+  calendarStatus.textContent = ''
+}
 
-  const { data } = await getEventTypeSlots({ path: { id: view.eventType.id }, signal: request.signal })
-  if (request.signal.aborted || activeCalendar !== view) {
+async function loadAvailability(eventType: EventType) {
+  availabilityRequest?.controller.abort()
+  const controller = new AbortController()
+  availabilityRequest = { eventType, controller }
+  confirmButton.disabled = true
+  calendar.inert = !calendar.hidden && activeCalendar?.eventType !== eventType
+  calendar.setAttribute('aria-busy', 'true')
+  calendarStatus.textContent = calendar.hidden ? 'Загружаем свободное время…' : ''
+
+  const { data } = await getEventTypeSlots({ path: { id: eventType.id }, signal: controller.signal })
+  if (controller.signal.aborted) {
     return
   }
 
-  view.request = undefined
+  clearAvailabilityRequest()
   if (!data) {
-    view.availability = undefined
-    slotsList.replaceChildren()
-    slotsList.hidden = true
-    slotsStatus.textContent = ''
-    updateSelection()
+    if (activeCalendar?.eventType === eventType) {
+      activeCalendar.availability = undefined
+      slotsList.replaceChildren()
+      slotsList.hidden = true
+      slotsStatus.textContent = ''
+      updateSelection()
+    } else {
+      updateSelection(selectedSlot)
+    }
+
     calendarStatus.textContent = 'Не удалось загрузить свободное время.'
     return
   }
 
-  const previousDay = view.availability && daySelect.value
-  view.availability = data
-  calendarHeading.textContent = `Свободное время — «${view.eventType.title}»`
+  const previousDay = daySelect.value
+  const selectedStart = activeCalendar?.eventType === eventType ? selectedSlot?.startsAt : undefined
+  activeCalendar = { eventType, availability: data }
+  for (const button of list.querySelectorAll('button')) {
+    button.setAttribute('aria-pressed', String(button.value === eventType.id))
+  }
+
+  calendarHeading.textContent = `Свободное время — «${eventType.title}»`
   timeZoneLabel.textContent = `Часовой пояс — Москва (${data.timeZone}).`
   daySelect.replaceChildren(...data.days.map(({ date }) => {
     return new Option(formatCalendarDate.format(new Date(date)), date)
@@ -111,9 +131,7 @@ async function loadAvailability(view: CalendarView) {
     daySelect.value = previousDay
   }
 
-  renderSlots(data, selectedSlot?.startsAt)
-
-  calendarStatus.textContent = ''
+  renderSlots(data, selectedStart)
   calendar.hidden = false
 }
 
@@ -143,11 +161,16 @@ confirmButton.addEventListener('click', async () => {
   })
   bookingPending = false
 
-  const sameDay = activeCalendar === view && daySelect.value === day
+  const requestedType = availabilityRequest?.eventType ?? activeCalendar?.eventType
+  const sameDay = activeCalendar === view && requestedType === view.eventType && daySelect.value === day
   const confirmed = response?.status === 201 && data
   const conflict = response?.status === 409 && error?.code === 'slot_taken'
   if (confirmed) {
     confirmationDetails.textContent = `«${data.eventTypeTitle}» — ${formatInterval(data, timeZone)}, Москва.`
+    if (!rememberBooking(data.id)) {
+      confirmationDetails.append(' Браузер не смог сохранить запись в разделе «Мои бронирования».')
+    }
+
     confirmation.hidden = false
   }
 
@@ -162,8 +185,8 @@ confirmButton.addEventListener('click', async () => {
         : `«${view.eventType.title}» — ${formatInterval(slot, timeZone)}, Москва. ${error.message}`
     }
 
-    if (activeCalendar) {
-      await loadAvailability(activeCalendar)
+    if (requestedType) {
+      await loadAvailability(requestedType)
     }
 
     return
@@ -194,14 +217,26 @@ if (!eventTypes) {
     description.textContent = eventType.description
     duration.textContent = `${eventType.durationMinutes} мин.`
     choose.type = 'button'
+    choose.value = eventType.id
+    choose.setAttribute('aria-pressed', 'false')
     choose.textContent = `Выбрать «${eventType.title}»`
     choose.addEventListener('click', () => {
-      activeCalendar?.request?.abort()
-      activeCalendar = { eventType }
-      calendar.hidden = true
+      if (availabilityRequest?.eventType === eventType) {
+        return
+      }
+
+      if (activeCalendar?.eventType === eventType && activeCalendar.availability) {
+        if (availabilityRequest) {
+          availabilityRequest.controller.abort()
+          clearAvailabilityRequest()
+          updateSelection(selectedSlot)
+        }
+
+        return
+      }
+
       bookingStatus.textContent = ''
-      updateSelection()
-      void loadAvailability(activeCalendar)
+      void loadAvailability(eventType)
     })
     item.append(title, description, duration, choose)
     list.append(item)

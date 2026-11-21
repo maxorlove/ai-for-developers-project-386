@@ -9,7 +9,13 @@
   </head>
   <body>
     <main>
+      <a href="/">На главную</a>
       <h1>Владелец календаря</h1>
+      <section aria-labelledby="event-types-heading">
+        <h2 id="event-types-heading">Типы встреч</h2>
+        <ul id="owner-event-types" hidden></ul>
+        <p id="owner-catalog-status" role="status">Загружаем типы встреч…</p>
+      </section>
       <form id="event-type-form">
         <label>
           Идентификатор
